@@ -1,4 +1,5 @@
 import os
+import sys
 import glob
 import argparse
 import pandas as pd
@@ -156,6 +157,17 @@ def main():
     for f in glob.glob(os.path.join(args.input_dir, file_pattern)):
         name = os.path.splitext(os.path.basename(f))[0]
         sample_otu = extract_abundances(f, mode=args.mode)
+
+        # Check if sample_otu is empty or doesn't have the required columns
+        if sample_otu.empty or not all(
+            col in sample_otu.columns for col in ["species", "abundance"]
+        ):
+            print(
+                f"Warning: Skipping {f} because it's empty or missing required columns.",
+                file=sys.stderr,
+            )
+            continue
+
         sample_otu["sample"] = name
         otu_table = pd.concat([otu_table, sample_otu], ignore_index=True)
 
