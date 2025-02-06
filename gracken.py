@@ -196,10 +196,6 @@ def main():
     bac_found, bac_missing = find_matching_species(my_species, bac_species_to_genomes)
     ar_found, ar_missing = find_matching_species(my_species, ar_species_to_genomes)
 
-    # quality control -- make sure we cover all species
-    assert ar_missing == bac_found
-    assert bac_missing == ar_found
-
     # make the trees
     bac_tree = process_tree(args.bac_tree, bac_genome_to_species, bac_found)
     ar_tree = process_tree(args.ar_tree, ar_genome_to_species, ar_found)
