@@ -154,7 +154,12 @@ def main():
     otu_table = pd.DataFrame()
     file_pattern = "*.breport" if args.mode == "bracken" else "*.k2report"
 
-    for f in glob.glob(os.path.join(args.input_dir, file_pattern)):
+    matching_files = glob.glob(os.path.join(args.input_dir, file_pattern))
+    if not matching_files:
+        print(f"Error: No {args.mode} files found in {args.input_dir}", file=sys.stderr)
+        sys.exit(1)
+
+    for f in matching_files:
         name = os.path.splitext(os.path.basename(f))[0]
         sample_otu = extract_abundances(f, mode=args.mode)
 
