@@ -21,40 +21,43 @@ def harmonize_species(name):
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Create a phylogenetic tree using Bracken/Kraken2 reports by pruning the GTDB tree"
+        description="Create a phylogenetic tree from Bracken/Kraken2 reports by pruning GTDB/NCBI trees"
     )
     parser.add_argument(
         "--input_dir",
+        "-i",
         required=True,
         help="Directory containing Bracken/Kraken2 report files",
     )
     parser.add_argument(
         "--bac_taxonomy",
-        required=True,
+        required=False,  # not used when using NCBI
         help="Path to bacterial taxonomy file (e.g., bac120_taxonomy_r95.tsv)",
     )
     parser.add_argument(
         "--ar_taxonomy",
-        required=True,
+        required=False,  # not used when using NCBI
         help="Path to archaeal taxonomy file (e.g., ar122_taxonomy_r95.tsv)",
     )
     parser.add_argument(
         "--bac_tree",
-        required=True,
+        required=False,  # not used when using NCBI
         help="Path to bacterial tree file (e.g., bac120_r95.tree)",
     )
     parser.add_argument(
         "--ar_tree",
-        required=True,
+        required=False,  # not used when using NCBI
         help="Path to archaeal tree file (e.g., ar122_r95.tree)",
     )
     parser.add_argument(
         "--out_prefix",
+        "-o",
         default="output",
         help="Prefix for output files (default: output). Creates <prefix>.tree and <prefix>.otu.csv",
     )
     parser.add_argument(
         "--mode",
+        "-m",
         choices=["bracken", "kraken2"],
         default="bracken",
         help="Input file format (default: bracken)",
@@ -65,25 +68,59 @@ def parse_args():
         default=False,
         help="Keep spaces in species names (default: False)",
     )
-    return parser.parse_args()
+    parser.add_argument(  # new argument for taxonomy source
+        "--taxonomy",
+        "-t",
+        choices=["gtdb", "ncbi"],
+        default="gtdb",
+        help="Taxonomy source to use (default: gtdb). With 'ncbi' the tree is generated using ete3.NCBITaxa.",
+    )
+    args = parser.parse_args()
+    if args.taxonomy == "gtdb":
+        missing_args = []
+        if not args.bac_taxonomy:
+            missing_args.append("--bac_taxonomy")
+        if not args.ar_taxonomy:
+            missing_args.append("--ar_taxonomy")
+        if not args.bac_tree:
+            missing_args.append("--bac_tree")
+        if not args.ar_tree:
+            missing_args.append("--ar_tree")
+        if missing_args:
+            parser.error(
+                "For GTDB taxonomy, the following arguments are required: "
+                + ", ".join(missing_args)
+            )
+    return args
 
 
 def extract_abundances(file_path, mode="bracken"):
-    """Extract species abundances from Bracken or Kraken2 reports."""
+    """Extract species abundances from Bracken or Kraken2 reports.
+    In NCBI mode, extract taxids instead of species names.
+    """
     df = pd.read_csv(file_path, sep="\t", header=None)
-
-    if mode == "bracken":
-        # extract rows where rank is 'S' (species) and abundance > 0
-        species_df = df[(df[3] == "S") & (df[2] > 0)]
-        species_abundance = species_df[[5, 2]]
+    if args.taxonomy == "ncbi":
+        if mode == "bracken":
+            # taxid is in the 5th column (index 4) and abundance in the 3rd column (index 2)
+            species_df = df[(df[3] == "S") & (df[2] > 0)]
+            species_abundance = species_df[[4, 2]]
+            species_abundance.columns = ["taxid", "abundance"]
+        else:
+            # for kraken2: taxid is in the 7th column (index 6) and abundance in the 2nd column (index 1) adjusted per original indices
+            species_df = df[(df[5] == "S") & (df[1] > 0)]
+            species_abundance = species_df[[6, 3]]
+            species_abundance.columns = ["taxid", "abundance"]
+        return species_abundance
     else:
-        species_df = df[(df[5] == "S") & (df[1] > 0)]
-        species_abundance = species_df[[7, 3]]
-
-    species_abundance.columns = ["species", "abundance"]
-    species_abundance["species"] = species_abundance["species"].str.strip()
-
-    return species_abundance
+        if mode == "bracken":
+            species_df = df[(df[3] == "S") & (df[2] > 0)]
+            species_abundance = species_df[[5, 2]]
+        else:
+            species_df = df[(df[5] == "S") & (df[1] > 0)]
+            species_abundance = species_df[[7, 3]]
+        species_abundance.columns = ["species", "abundance"]
+        species_abundance["species"] = species_abundance["species"].str.strip()
+        return species_abundance
 
 
 def process_taxonomy(taxonomy_file):
@@ -165,7 +202,10 @@ def main():
 
         # Check if sample_otu is empty or doesn't have the required columns
         if sample_otu.empty or not all(
-            col in sample_otu.columns for col in ["species", "abundance"]
+            col in sample_otu.columns
+            for col in (
+                ["taxid"] if args.taxonomy == "ncbi" else ["species", "abundance"]
+            )
         ):
             print(
                 f"Warning: Skipping {f} because it's empty or missing required columns.",
@@ -176,44 +216,62 @@ def main():
         sample_otu["sample"] = name
         otu_table = pd.concat([otu_table, sample_otu], ignore_index=True)
 
-    # transform to wide format and harmonize species names
-    wide_otu_table = otu_table.pivot(
-        index="species", columns="sample", values="abundance"
-    )
+    if args.taxonomy == "ncbi":
+        from ete3 import NCBITaxa
 
-    # remove 's__' prefix from species names
-    wide_otu_table.index = wide_otu_table.index.str.replace(r"^s__", "", regex=True)
-
-    if not args.dont_replace_spaces:
-        wide_otu_table.index = wide_otu_table.index.str.replace(" ", "_", regex=False)
-
-    wide_otu_table.to_csv(f"{args.out_prefix}.otu.csv", sep=",")
-
-    # unique species (use original names to match taxonomy)
-    species_set = set(otu_table["species"])
-
-    # load taxonomies
-    bac_species_to_genomes, bac_genome_to_species = process_taxonomy(args.bac_taxonomy)
-    ar_species_to_genomes, ar_genome_to_species = process_taxonomy(args.ar_taxonomy)
-
-    # compare our species against those in the taxonomy
-    my_species = {"s__" + x if not x.startswith("s__") else x for x in species_set}
-    bac_found, bac_missing = find_matching_species(my_species, bac_species_to_genomes)
-    ar_found, ar_missing = find_matching_species(my_species, ar_species_to_genomes)
-
-    # make the trees
-    bac_tree = process_tree(args.bac_tree, bac_genome_to_species, bac_found)
-    ar_tree = process_tree(args.ar_tree, ar_genome_to_species, ar_found)
-
-    # and combine
-    combined_tree = Tree3()
-    combined_tree.name = "root"
-    combined_tree.add_child(bac_tree)
-    combined_tree.add_child(ar_tree)
-
-    combined_tree.write(
-        outfile=f"{args.out_prefix}.tree", format=1, quoted_node_names=False
-    )
+        ncbi = NCBITaxa()
+        # Get unique taxids and translate to species names
+        taxid_list = list(otu_table["taxid"].unique())
+        translator = ncbi.get_taxid_translator(taxid_list)
+        otu_table["species"] = otu_table["taxid"].map(
+            lambda tid: translator.get(int(tid), str(tid))
+        )
+        # Replace spaces if desired in species names in OTU table
+        if not args.dont_replace_spaces:
+            otu_table["species"] = otu_table["species"].str.replace(
+                " ", "_", regex=False
+            )
+        wide_otu_table = otu_table.pivot_table(
+            index="species", columns="sample", values="abundance", aggfunc="sum"
+        )
+        wide_otu_table.to_csv(f"{args.out_prefix}.otu.csv", sep=",")
+        # Build tree using NCBI taxonomy and update leaf names
+        tree = ncbi.get_topology(taxid_list)
+        for leaf in tree.get_leaves():
+            leaf.name = translator.get(int(leaf.name), leaf.name)
+            if not args.dont_replace_spaces:
+                leaf.name = leaf.name.replace(" ", "_")
+        tree.write(outfile=f"{args.out_prefix}.tree", format=1, quoted_node_names=False)
+    else:
+        # GTDB mode: use pivot_table to sum duplicate entries
+        wide_otu_table = otu_table.pivot_table(
+            index="species", columns="sample", values="abundance", aggfunc="sum"
+        )
+        wide_otu_table.index = wide_otu_table.index.str.replace(r"^s__", "", regex=True)
+        if not args.dont_replace_spaces:
+            wide_otu_table.index = wide_otu_table.index.str.replace(
+                " ", "_", regex=False
+            )
+        wide_otu_table.to_csv(f"{args.out_prefix}.otu.csv", sep=",")
+        # unique species (use original names to match taxonomy)
+        species_set = set(otu_table["species"])
+        # load taxonomies
+        bac_species_to_genomes, bac_genome_to_species = process_taxonomy(
+            args.bac_taxonomy
+        )
+        ar_species_to_genomes, ar_genome_to_species = process_taxonomy(args.ar_taxonomy)
+        my_species = {"s__" + x if not x.startswith("s__") else x for x in species_set}
+        bac_found, _ = find_matching_species(my_species, bac_species_to_genomes)
+        ar_found, _ = find_matching_species(my_species, ar_species_to_genomes)
+        bac_tree = process_tree(args.bac_tree, bac_genome_to_species, bac_found)
+        ar_tree = process_tree(args.ar_tree, ar_genome_to_species, ar_found)
+        combined_tree = Tree3()
+        combined_tree.name = "root"
+        combined_tree.add_child(bac_tree)
+        combined_tree.add_child(ar_tree)
+        combined_tree.write(
+            outfile=f"{args.out_prefix}.tree", format=1, quoted_node_names=False
+        )
 
 
 if __name__ == "__main__":
