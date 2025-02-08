@@ -14,7 +14,6 @@ usage: gracken.py  [-h] --input_dir INPUT_DIR [--bac_taxonomy BAC_TAXONOMY]
                    [--ar_tree AR_TREE] [--out_prefix OUT_PREFIX]
                    [--mode {bracken,kraken2}] [--keep-spaces]
                    [--taxonomy {gtdb,ncbi}]
-```
 
 Options:
   -h, --help            Show this help message and exit.  
@@ -33,6 +32,7 @@ Options:
                         Keep spaces in species names (default: False).  
   --taxonomy {gtdb,ncbi}  
                         Taxonomy source to use (default: ncbi).
+```
 
 ### GTDB Taxonomy Example
 
