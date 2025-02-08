@@ -105,9 +105,10 @@ def main():
     for f in matching_files:
         name = os.path.splitext(os.path.basename(f))[0]
         if args.mode == "bracken":
-            sample_otu = read_bracken_report(f, taxonomy=args.taxonomy)
+            # Updated call: removed taxonomy parameter.
+            sample_otu = read_bracken_report(f)
         else:
-            sample_otu = read_kraken2_report(f, taxonomy=args.taxonomy)
+            sample_otu = read_kraken2_report(f)
 
         # Check if sample_otu is empty or doesn't have the required columns
         if sample_otu.empty or not all(

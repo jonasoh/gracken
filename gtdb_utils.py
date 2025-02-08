@@ -30,19 +30,22 @@ def process_tree(tree_file, genome_to_species, species_to_keep):
     from ete3 import Tree as Tree3
 
     tree = Tree3(tree_file, format=1, quoted_node_names=True)
+
     # replace tip names (genome ids) with species names from taxonomy
     for node in tree.traverse():
         if node.name in genome_to_species:
             node.name = genome_to_species[node.name]
+
     # Compute harmonized species to keep
     harmonized_keep = set(s.lstrip("s__") for s in species_to_keep)
     valid_species = []
     for leaf in tree.get_leaves():
-        # Using lstrip to harmonize the leaf name for matching
         if leaf.name.lstrip("s__") in harmonized_keep:
             valid_species.append(leaf.name)
+
     if not valid_species:
         raise ValueError("No matching species found in tree")
+
     tree.prune(valid_species, preserve_branch_length=True)
     return tree
 
