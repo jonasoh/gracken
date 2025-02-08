@@ -105,7 +105,6 @@ def main():
     for f in matching_files:
         name = os.path.splitext(os.path.basename(f))[0]
         if args.mode == "bracken":
-            # Updated call: removed taxonomy parameter.
             sample_otu = read_bracken_report(f)
         else:
             sample_otu = read_kraken2_report(f)
@@ -145,7 +144,7 @@ def main():
             index="species", columns="sample", values="abundance", aggfunc="sum"
         )
         if not args.full_taxonomy:
-            wide_otu_table = wide_otu_table.reset_index()  # ensure species is a column
+            wide_otu_table = wide_otu_table.reset_index()
         wide_otu_table.to_csv(f"{args.out_prefix}.otu.csv", sep=",", index=False)
 
         if args.full_taxonomy:
@@ -186,21 +185,10 @@ def main():
         wide_otu_table = otu_table.pivot_table(
             index="species", columns="sample", values="abundance", aggfunc="sum"
         )
-        if args.full_taxonomy:
-            wide_otu_table = wide_otu_table.reset_index()
-            if not args.keep_spaces:
-                wide_otu_table["species"] = wide_otu_table["species"].str.replace(
-                    " ", "_"
-                )
-        else:
-            wide_otu_table.index = wide_otu_table.index.str.replace(
-                r"^s__", "", regex=True
-            )
-            if not args.keep_spaces:
-                wide_otu_table.index = wide_otu_table.index.str.replace(" ", "_")
-            wide_otu_table = (
-                wide_otu_table.reset_index()
-            )  # ensure species column is preserved
+        wide_otu_table.index = wide_otu_table.index.str.replace(r"^s__", "", regex=True)
+        if not args.keep_spaces:
+            wide_otu_table.index = wide_otu_table.index.str.replace(" ", "_")
+        wide_otu_table = wide_otu_table.reset_index()
 
         if args.full_taxonomy:
             mapping = gt.build_taxonomy_mapping(
