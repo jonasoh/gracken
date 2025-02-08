@@ -5,6 +5,7 @@ import argparse
 import pandas as pd
 import gtdb_utils as gt
 import ncbi_utils as nc
+from ete3 import NCBITaxa
 from ete3 import Tree as Tree3
 from data_loaders import read_bracken_report, read_kraken2_report
 
@@ -89,10 +90,9 @@ def parse_args():
     return args
 
 
-args = parse_args()
-
-
 def main():
+    args = parse_args()
+
     # load data and create OTU table
     otu_table = pd.DataFrame()
     file_pattern = "*.breport" if args.mode == "bracken" else "*.k2report"
@@ -126,8 +126,6 @@ def main():
         otu_table = pd.concat([otu_table, sample_otu], ignore_index=True)
 
     if args.taxonomy == "ncbi":
-        from ete3 import NCBITaxa
-
         ncbi = NCBITaxa()
 
         # Get unique taxids and translate to species names
@@ -145,9 +143,8 @@ def main():
         )
         if not args.full_taxonomy:
             wide_otu_table = wide_otu_table.reset_index()
-        wide_otu_table.to_csv(f"{args.out_prefix}.otu.csv", sep=",", index=False)
-
-        if args.full_taxonomy:
+            wide_otu_table.to_csv(f"{args.out_prefix}.otu.csv", sep=",", index=False)
+        else:
             mapping = nc.build_lineage_mapping(ncbi, otu_table)
             wide_otu_table = wide_otu_table.reset_index()
             for col in ["domain", "phylum", "class", "order", "family", "genus"]:
