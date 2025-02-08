@@ -54,7 +54,7 @@ def parse_args():
         help="Input file format (default: bracken)",
     )
     parser.add_argument(
-        "--dont-replace-spaces",
+        "--keep-spaces",
         action="store_true",
         default=False,
         help="Keep spaces in species names (default: False)",
@@ -133,7 +133,7 @@ def main():
             lambda tid: translator.get(int(tid), str(tid))
         )
 
-        if not args.dont_replace_spaces:
+        if not args.keep_spaces:
             otu_table["species"] = otu_table["species"].str.replace(" ", "_")
 
         wide_otu_table = otu_table.pivot_table(
@@ -145,7 +145,7 @@ def main():
         tree = ncbi.get_topology(taxid_list)
         for leaf in tree.get_leaves():
             leaf.name = translator.get(int(leaf.name), leaf.name)
-            if not args.dont_replace_spaces:
+            if not args.keep_spaces:
                 leaf.name = leaf.name.replace(" ", "_")
         tree.write(outfile=f"{args.out_prefix}.tree", format=1, quoted_node_names=False)
     else:  # GTDB
@@ -153,7 +153,7 @@ def main():
             index="species", columns="sample", values="abundance", aggfunc="sum"
         )
         wide_otu_table.index = wide_otu_table.index.str.replace(r"^s__", "", regex=True)
-        if not args.dont_replace_spaces:
+        if not args.keep_spaces:
             wide_otu_table.index = wide_otu_table.index.str.replace(" ", "_")
         wide_otu_table.to_csv(f"{args.out_prefix}.otu.csv", sep=",")
 
