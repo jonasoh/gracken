@@ -5,6 +5,7 @@ import argparse
 import pandas as pd
 from ete3 import Tree as Tree3
 from gtdb_utils import process_taxonomy, find_matching_species, process_tree
+from data_loaders import read_bracken_report, read_kraken2_report
 
 pd.options.mode.copy_on_write = True
 
@@ -84,35 +85,6 @@ def parse_args():
     return args
 
 
-def extract_abundances(file_path, mode="bracken"):
-    """Extract species abundances from Bracken or Kraken2 reports.
-    In NCBI mode, extract taxids instead of species names.
-    """
-    df = pd.read_csv(file_path, sep="\t", header=None)
-    if args.taxonomy == "ncbi":
-        if mode == "bracken":
-            # taxid is in the 5th column (index 4) and abundance in the 3rd column (index 2)
-            species_df = df[(df[3] == "S") & (df[2] > 0)]
-            species_abundance = species_df[[4, 2]]
-            species_abundance.columns = ["taxid", "abundance"]
-        else:
-            # for kraken2: taxid is in the 7th column (index 6) and abundance in the 2nd column (index 1) adjusted per original indices
-            species_df = df[(df[5] == "S") & (df[1] > 0)]
-            species_abundance = species_df[[6, 3]]
-            species_abundance.columns = ["taxid", "abundance"]
-        return species_abundance
-    else:
-        if mode == "bracken":
-            species_df = df[(df[3] == "S") & (df[2] > 0)]
-            species_abundance = species_df[[5, 2]]
-        else:
-            species_df = df[(df[5] == "S") & (df[1] > 0)]
-            species_abundance = species_df[[7, 3]]
-        species_abundance.columns = ["species", "abundance"]
-        species_abundance["species"] = species_abundance["species"].str.strip()
-        return species_abundance
-
-
 args = parse_args()
 
 
@@ -128,7 +100,10 @@ def main():
 
     for f in matching_files:
         name = os.path.splitext(os.path.basename(f))[0]
-        sample_otu = extract_abundances(f, mode=args.mode)
+        if args.mode == "bracken":
+            sample_otu = read_bracken_report(f, taxonomy=args.taxonomy)
+        else:
+            sample_otu = read_kraken2_report(f, taxonomy=args.taxonomy)
 
         # Check if sample_otu is empty or doesn't have the required columns
         if sample_otu.empty or not all(
