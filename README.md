@@ -9,29 +9,30 @@ Gracken was inspired by [this comment](https://github.com/jenniferlu717/KrakenTo
 Gracken requires Bracken or Kraken2 report files. For GTDB taxonomy, you'll also need the taxonomy and tree files matching the database you used.
 
 ```
-usage: gracken.py  [-h] --input_dir INPUT_DIR [--bac_taxonomy BAC_TAXONOMY]
-                   [--ar_taxonomy AR_TAXONOMY] [--bac_tree BAC_TREE]
-                   [--ar_tree AR_TREE] [--out_prefix OUT_PREFIX]
-                   [--mode {bracken,kraken2}] [--keep-spaces]
-                   [--taxonomy {gtdb,ncbi}]
+usage: gracken.py [-h] --input_dir INPUT_DIR [--bac_taxonomy BAC_TAXONOMY] [--ar_taxonomy AR_TAXONOMY]
+                  [--bac_tree BAC_TREE] [--ar_tree AR_TREE] [--out_prefix OUT_PREFIX] [--mode {bracken,kraken2}]
+                  [--keep-spaces] [--taxonomy {gtdb,ncbi}] [--full-taxonomy]
 
-Options:
-  -h, --help            Show this help message and exit.  
-  --input_dir INPUT_DIR  Directory containing Bracken/Kraken2 report files.  
-  --bac_taxonomy BAC_TAXONOMY  
-                        Path to bacterial taxonomy file (e.g., bac120_taxonomy_r95.tsv).  
-  --ar_taxonomy AR_TAXONOMY  
-                        Path to archaeal taxonomy file (e.g., ar122_taxonomy_r95.tsv).  
-  --bac_tree BAC_TREE   Path to bacterial tree file (e.g., bac120_r95.tree).  
-  --ar_tree AR_TREE     Path to archaeal tree file (e.g., ar122_r95.tree).  
-  --out_prefix OUT_PREFIX  
-                        Prefix for output files (default: output). Creates <prefix>.tree and <prefix>.otu.csv.  
-  --mode {bracken,kraken2}  
-                        Input file format (default: bracken).  
-  --keep-spaces  
-                        Keep spaces in species names (default: False).  
-  --taxonomy {gtdb,ncbi}  
+Create a phylogenetic tree from Bracken/Kraken2 reports by pruning GTDB/NCBI trees
+
+options:
+  -h, --help            show this help message and exit
+  --input_dir INPUT_DIR, -i INPUT_DIR
+                        Directory containing Bracken/Kraken2 report files
+  --bac_taxonomy BAC_TAXONOMY
+                        Path to GTDB bacterial taxonomy file
+  --ar_taxonomy AR_TAXONOMY
+                        Path to GTDB archaeal taxonomy file
+  --bac_tree BAC_TREE   Path to GTDB bacterial tree file
+  --ar_tree AR_TREE     Path to GTDB archaeal tree file
+  --out_prefix OUT_PREFIX, -o OUT_PREFIX
+                        Prefix for output files (default: output). Creates <prefix>.tree and <prefix>.otu.csv
+  --mode {bracken,kraken2}, -m {bracken,kraken2}
+                        Input file format (default: bracken)
+  --keep-spaces         Keep spaces in species names (default: False)
+  --taxonomy {gtdb,ncbi}, -t {gtdb,ncbi}
                         Taxonomy source to use (default: ncbi).
+  --full-taxonomy, -f   Include full taxonomy info in OTU table (default: False)
 ```
 
 ### GTDB Taxonomy Example

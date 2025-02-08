@@ -3,8 +3,9 @@ import sys
 import glob
 import argparse
 import pandas as pd
+import gtdb_utils as gt
+import ncbi_utils as nc
 from ete3 import Tree as Tree3
-from gtdb_utils import process_taxonomy, find_matching_species, process_tree
 from data_loaders import read_bracken_report, read_kraken2_report
 
 pd.options.mode.copy_on_write = True
@@ -22,23 +23,19 @@ def parse_args():
     )
     parser.add_argument(
         "--bac_taxonomy",
-        required=False,
-        help="Path to bacterial taxonomy file (e.g., bac120_taxonomy_r95.tsv)",
+        help="Path to GTDB bacterial taxonomy file",
     )
     parser.add_argument(
         "--ar_taxonomy",
-        required=False,
-        help="Path to archaeal taxonomy file (e.g., ar122_taxonomy_r95.tsv)",
+        help="Path to GTDB archaeal taxonomy file",
     )
     parser.add_argument(
         "--bac_tree",
-        required=False,
-        help="Path to bacterial tree file (e.g., bac120_r95.tree)",
+        help="Path to GTDB bacterial tree file",
     )
     parser.add_argument(
         "--ar_tree",
-        required=False,
-        help="Path to archaeal tree file (e.g., ar122_r95.tree)",
+        help="Path to GTDB archaeal tree file",
     )
     parser.add_argument(
         "--out_prefix",
@@ -65,6 +62,13 @@ def parse_args():
         choices=["gtdb", "ncbi"],
         default="ncbi",
         help="Taxonomy source to use (default: ncbi).",
+    )
+    parser.add_argument(
+        "--full-taxonomy",
+        "-f",
+        action="store_true",
+        default=False,
+        help="Include full taxonomy info in OTU table (default: False)",
     )
     args = parser.parse_args()
     if args.taxonomy == "gtdb":
@@ -139,7 +143,36 @@ def main():
         wide_otu_table = otu_table.pivot_table(
             index="species", columns="sample", values="abundance", aggfunc="sum"
         )
-        wide_otu_table.to_csv(f"{args.out_prefix}.otu.csv", sep=",")
+        if not args.full_taxonomy:
+            wide_otu_table = wide_otu_table.reset_index()  # ensure species is a column
+        wide_otu_table.to_csv(f"{args.out_prefix}.otu.csv", sep=",", index=False)
+
+        if args.full_taxonomy:
+            mapping = nc.build_lineage_mapping(ncbi, otu_table)
+            wide_otu_table = wide_otu_table.reset_index()
+            for col in ["domain", "phylum", "class", "order", "family", "genus"]:
+                wide_otu_table[col] = wide_otu_table["species"].map(
+                    lambda sp: mapping.get(sp, {}).get(col, "")
+                )
+            other_cols = [
+                c
+                for c in wide_otu_table.columns
+                if c
+                not in [
+                    "species",
+                    "domain",
+                    "phylum",
+                    "class",
+                    "order",
+                    "family",
+                    "genus",
+                ]
+            ]
+            wide_otu_table = wide_otu_table[
+                ["domain", "phylum", "class", "order", "family", "genus", "species"]
+                + other_cols
+            ]
+            wide_otu_table.to_csv(f"{args.out_prefix}.otu.csv", sep=",", index=False)
 
         # Build tree using NCBI taxonomy and update leaf names
         tree = ncbi.get_topology(taxid_list)
@@ -152,27 +185,69 @@ def main():
         wide_otu_table = otu_table.pivot_table(
             index="species", columns="sample", values="abundance", aggfunc="sum"
         )
-        wide_otu_table.index = wide_otu_table.index.str.replace(r"^s__", "", regex=True)
-        if not args.keep_spaces:
-            wide_otu_table.index = wide_otu_table.index.str.replace(" ", "_")
-        wide_otu_table.to_csv(f"{args.out_prefix}.otu.csv", sep=",")
+        if args.full_taxonomy:
+            wide_otu_table = wide_otu_table.reset_index()
+            if not args.keep_spaces:
+                wide_otu_table["species"] = wide_otu_table["species"].str.replace(
+                    " ", "_"
+                )
+        else:
+            wide_otu_table.index = wide_otu_table.index.str.replace(
+                r"^s__", "", regex=True
+            )
+            if not args.keep_spaces:
+                wide_otu_table.index = wide_otu_table.index.str.replace(" ", "_")
+            wide_otu_table = (
+                wide_otu_table.reset_index()
+            )  # ensure species column is preserved
+
+        if args.full_taxonomy:
+            mapping = gt.build_taxonomy_mapping(
+                [args.bac_taxonomy, args.ar_taxonomy], args.keep_spaces
+            )
+            for col in ["domain", "phylum", "class", "order", "family", "genus"]:
+                wide_otu_table[col] = wide_otu_table["species"].map(
+                    lambda sp: mapping.get(sp, {}).get(col, "")
+                )
+            other_cols = [
+                c
+                for c in wide_otu_table.columns
+                if c
+                not in [
+                    "species",
+                    "domain",
+                    "phylum",
+                    "class",
+                    "order",
+                    "family",
+                    "genus",
+                ]
+            ]
+            wide_otu_table = wide_otu_table[
+                ["domain", "phylum", "class", "order", "family", "genus", "species"]
+                + other_cols
+            ]
+
+        wide_otu_table.to_csv(f"{args.out_prefix}.otu.csv", sep=",", index=False)
 
         # unique species (use original names to match taxonomy)
         species_set = set(otu_table["species"])
 
         # load taxonomies
-        bac_species_to_genomes, bac_genome_to_species = process_taxonomy(
+        bac_species_to_genomes, bac_genome_to_species = gt.process_taxonomy(
             args.bac_taxonomy
         )
-        ar_species_to_genomes, ar_genome_to_species = process_taxonomy(args.ar_taxonomy)
+        ar_species_to_genomes, ar_genome_to_species = gt.process_taxonomy(
+            args.ar_taxonomy
+        )
 
         my_species = {"s__" + x if not x.startswith("s__") else x for x in species_set}
 
-        bac_found, _ = find_matching_species(my_species, bac_species_to_genomes)
-        ar_found, _ = find_matching_species(my_species, ar_species_to_genomes)
+        bac_found, _ = gt.find_matching_species(my_species, bac_species_to_genomes)
+        ar_found, _ = gt.find_matching_species(my_species, ar_species_to_genomes)
 
-        bac_tree = process_tree(args.bac_tree, bac_genome_to_species, bac_found)
-        ar_tree = process_tree(args.ar_tree, ar_genome_to_species, ar_found)
+        bac_tree = gt.process_tree(args.bac_tree, bac_genome_to_species, bac_found)
+        ar_tree = gt.process_tree(args.ar_tree, ar_genome_to_species, ar_found)
 
         combined_tree = Tree3()
         combined_tree.name = "root"

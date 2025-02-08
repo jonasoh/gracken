@@ -1,6 +1,3 @@
-# helper functions for GTDB-specific operations
-
-
 def process_taxonomy(taxonomy_file):
     """Process GTDB taxonomy file and return species mappings."""
     species_to_genomes = {}
@@ -17,7 +14,7 @@ def process_taxonomy(taxonomy_file):
 
 
 def find_matching_species(species_set, species_to_genomes):
-    """Find matching species."""
+    """Checks the species_set against the full list of species."""
     found_species = set()
     missing_species = set()
     for species in species_set:
@@ -48,3 +45,36 @@ def process_tree(tree_file, genome_to_species, species_to_keep):
         raise ValueError("No matching species found in tree")
     tree.prune(valid_species, preserve_branch_length=True)
     return tree
+
+
+def build_taxonomy_mapping(tax_files, keep_spaces):
+    """
+    Build a mapping from GTDB taxonomy files.
+    """
+    gtdb_taxonomy = {}
+    for tax_file in tax_files:
+        with open(tax_file, "r") as tf:
+            for line in tf:
+                genome, tax_str = line.strip().split("\t")
+                parts = tax_str.split(";")
+                tax_dict = {}
+                for part in parts:
+                    if part.startswith("d__"):
+                        tax_dict["domain"] = part.replace("d__", "")
+                    elif part.startswith("p__"):
+                        tax_dict["phylum"] = part.replace("p__", "")
+                    elif part.startswith("c__"):
+                        tax_dict["class"] = part.replace("c__", "")
+                    elif part.startswith("o__"):
+                        tax_dict["order"] = part.replace("o__", "")
+                    elif part.startswith("f__"):
+                        tax_dict["family"] = part.replace("f__", "")
+                    elif part.startswith("g__"):
+                        tax_dict["genus"] = part.replace("g__", "")
+                    elif part.startswith("s__"):
+                        tax_dict["species"] = part.replace("s__", "")
+                if "species" in tax_dict and not keep_spaces:
+                    tax_dict["species"] = tax_dict["species"].replace(" ", "_")
+                if "species" in tax_dict and tax_dict["species"] not in gtdb_taxonomy:
+                    gtdb_taxonomy[tax_dict["species"]] = tax_dict
+    return gtdb_taxonomy
