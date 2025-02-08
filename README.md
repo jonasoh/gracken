@@ -62,6 +62,28 @@ This command will:
 2.  Automatically download the necessary NCBI taxdump.
 3.  Create two output files: `my_ncbi_tree.tree` (the phylogenetic tree) and `my_ncbi_tree.otu.csv` (the OTU table).
 
+## Phyloseq Example
+
+You can use the output OTU file and tree with [phyloseq](https://joey711.github.io/phyloseq/) and [ape](https://github.com/emmanuelparadis/ape). Here's an example R script which works regardless of whether you used `--full-taxonomy` or not:
+
+```R
+library(ape)
+library(phyloseq)
+
+# read the otu table and convert it to matrix
+otu_tbl <- read.csv("output.otu.csv", stringsAsFactors = FALSE)
+otu_mat <- as.matrix(otu_tbl[, (which(names(otu_tbl) == "species") + 1):ncol(otu_tbl)])
+rownames(otu_mat) <- otu_tbl$species
+otu_mat[is.na(otu_mat)] <- 0
+otu_table_ps <- otu_table(otu_mat, taxa_are_rows = TRUE)
+
+# load the tree
+tree_ps <- phy_tree(read.tree('output.tree'))
+
+# create the phyloseq object
+ps <- phyloseq(otu_table_ps, tree_ps)
+```
+
 ## Dependencies
 
 *   Python 3
