@@ -3,12 +3,12 @@ import sys
 import glob
 import argparse
 import pandas as pd
-import gtdb_utils as gt
-import ncbi_utils as nc
-from vars import tax_cols
+from . import gtdb_utils as gt
+from . import ncbi_utils as nc
+from .vars import tax_cols
 from ete3 import NCBITaxa
 from ete3 import Tree as Tree3
-from data_loaders import read_bracken_report, read_kraken2_report
+from .data_loaders import read_bracken_report, read_kraken2_report
 
 pd.options.mode.copy_on_write = True
 

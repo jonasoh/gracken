@@ -1,4 +1,4 @@
-from vars import tax_cols
+from .vars import tax_cols
 
 
 def build_lineage_mapping(ncbi, otu_table):
