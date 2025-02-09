@@ -16,69 +16,69 @@ pd.options.mode.copy_on_write = True
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Create a phylogenetic tree from Bracken/Kraken2 reports by pruning GTDB/NCBI trees"
+        description="Creates a phylogenetic tree and OTU table from Bracken/Kraken2 reports by pruning GTDB/NCBI trees"
     )
     parser.add_argument(
         "--version",
         "-v",
         action="version",
         version=__version__,
-        help="Show program version and exit",
+        help="show program version and exit",
     )
     parser.add_argument(
         "--input_dir",
         "-i",
         required=True,
-        help="Directory containing Bracken/Kraken2 report files",
+        help="directory containing Bracken/Kraken2 report files",
     )
     parser.add_argument(
         "--bac_taxonomy",
-        help="Path to GTDB bacterial taxonomy file",
+        help="path to GTDB bacterial taxonomy file",
     )
     parser.add_argument(
         "--ar_taxonomy",
-        help="Path to GTDB archaeal taxonomy file",
+        help="path to GTDB archaeal taxonomy file",
     )
     parser.add_argument(
         "--bac_tree",
-        help="Path to GTDB bacterial tree file",
+        help="path to GTDB bacterial tree file",
     )
     parser.add_argument(
         "--ar_tree",
-        help="Path to GTDB archaeal tree file",
+        help="path to GTDB archaeal tree file",
     )
     parser.add_argument(
         "--out_prefix",
         "-o",
         default="output",
-        help="Prefix for output files (default: output). Creates <prefix>.tree and <prefix>.otu.csv",
+        help="prefix for output files (default: output). Creates <prefix>.tree and <prefix>.otu.csv",
     )
     parser.add_argument(
         "--mode",
         "-m",
         choices=["bracken", "kraken2"],
         default="bracken",
-        help="Input file format (default: bracken)",
+        help="input file format (default: bracken)",
     )
     parser.add_argument(
         "--keep-spaces",
         action="store_true",
         default=False,
-        help="Keep spaces in species names (default: False)",
+        help="keep spaces in species names (default: False)",
     )
     parser.add_argument(
         "--taxonomy",
         "-t",
         choices=["gtdb", "ncbi"],
         default="ncbi",
-        help="Taxonomy source to use (default: ncbi).",
+        help="taxonomy source to use (default: ncbi).",
     )
     parser.add_argument(
         "--full-taxonomy",
         "-f",
         action="store_true",
         default=False,
-        help="Include full taxonomy info in OTU table (default: False)",
+        help="include full taxonomy info in OTU table (default: False)",
     )
     args = parser.parse_args()
     if args.taxonomy == "gtdb":
