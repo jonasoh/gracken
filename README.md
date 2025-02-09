@@ -9,7 +9,7 @@ Gracken was inspired by [this comment](https://github.com/jenniferlu717/KrakenTo
 You can install Gracken using pipx:
 
 ```bash
-pipx install git+https://github.com/jonasoh/gracken
+pipx install gracken
 ```
 
 ## Usage
