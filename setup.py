@@ -30,5 +30,5 @@ setup(
         "Intended Audience :: Science/Research",
         "Environment :: Console",
     ],
-    python_requires=">=3.9",
+    python_requires=">=3.9, <3.13",  # ete3 requires <3.13
 )
