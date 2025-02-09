@@ -125,6 +125,11 @@ def main():
         sample_otu["sample"] = name
         otu_table = pd.concat([otu_table, sample_otu], ignore_index=True)
 
+    tax_cols = ["domain", "phylum", "class", "order", "family", "genus", "species"]
+
+    def get_sample_cols(cols):
+        return [c for c in cols if c not in tax_cols]
+
     if args.taxonomy == "ncbi":
         ncbi = NCBITaxa()
 
@@ -139,37 +144,17 @@ def main():
             otu_table["species"] = otu_table["species"].str.replace(" ", "_")
 
         wide_otu_table = otu_table.pivot_table(
-            index="species", columns="sample", values="abundance", aggfunc="sum"
-        )
-        if not args.full_taxonomy:
-            wide_otu_table = wide_otu_table.reset_index()
-            wide_otu_table.to_csv(f"{args.out_prefix}.otu.csv", sep=",", index=False)
-        else:
+            index="species", columns="sample", values="abundance"
+        ).reset_index()
+
+        if args.full_taxonomy:
             mapping = nc.build_lineage_mapping(ncbi, otu_table)
-            wide_otu_table = wide_otu_table.reset_index()
-            for col in ["domain", "phylum", "class", "order", "family", "genus"]:
+            for col in tax_cols[:-1]:  # exclude species
                 wide_otu_table[col] = wide_otu_table["species"].map(
                     lambda sp: mapping.get(sp, {}).get(col, "")
                 )
-            other_cols = [
-                c
-                for c in wide_otu_table.columns
-                if c
-                not in [
-                    "species",
-                    "domain",
-                    "phylum",
-                    "class",
-                    "order",
-                    "family",
-                    "genus",
-                ]
-            ]
-            wide_otu_table = wide_otu_table[
-                ["domain", "phylum", "class", "order", "family", "genus", "species"]
-                + other_cols
-            ]
-            wide_otu_table.to_csv(f"{args.out_prefix}.otu.csv", sep=",", index=False)
+            sample_cols = get_sample_cols(wide_otu_table.columns)
+            wide_otu_table = wide_otu_table[tax_cols + sample_cols]
 
         # Build tree using NCBI taxonomy and update leaf names
         tree = ncbi.get_topology(taxid_list)
@@ -177,46 +162,34 @@ def main():
             leaf.name = translator.get(int(leaf.name), leaf.name)
             if not args.keep_spaces:
                 leaf.name = leaf.name.replace(" ", "_")
-        tree.write(outfile=f"{args.out_prefix}.tree", format=1, quoted_node_names=False)
-    else:  # GTDB
+
+    # GTDB taxonomy
+    else:
         wide_otu_table = otu_table.pivot_table(
-            index="species", columns="sample", values="abundance", aggfunc="sum"
+            index="species", columns="sample", values="abundance"
+        ).reset_index()
+
+        # we drop the species prefix here since some databases have it and others don't
+        wide_otu_table["species"] = wide_otu_table["species"].str.replace(
+            r"^s__", "", regex=True
         )
-        wide_otu_table.index = wide_otu_table.index.str.replace(r"^s__", "", regex=True)
+
         if not args.keep_spaces:
-            wide_otu_table.index = wide_otu_table.index.str.replace(" ", "_")
-        wide_otu_table = wide_otu_table.reset_index()
+            wide_otu_table["species"] = wide_otu_table["species"].str.replace(" ", "_")
 
         if args.full_taxonomy:
             mapping = gt.build_taxonomy_mapping(
                 [args.bac_taxonomy, args.ar_taxonomy], args.keep_spaces
             )
-            for col in ["domain", "phylum", "class", "order", "family", "genus"]:
+            for col in tax_cols[:-1]:  # exclude species
                 wide_otu_table[col] = wide_otu_table["species"].map(
                     lambda sp: mapping.get(sp, {}).get(col, "")
                 )
-            other_cols = [
-                c
-                for c in wide_otu_table.columns
-                if c
-                not in [
-                    "species",
-                    "domain",
-                    "phylum",
-                    "class",
-                    "order",
-                    "family",
-                    "genus",
-                ]
-            ]
-            wide_otu_table = wide_otu_table[
-                ["domain", "phylum", "class", "order", "family", "genus", "species"]
-                + other_cols
-            ]
+            sample_cols = get_sample_cols(wide_otu_table.columns)
 
-        wide_otu_table.to_csv(f"{args.out_prefix}.otu.csv", sep=",", index=False)
+            wide_otu_table = wide_otu_table[tax_cols + sample_cols]
 
-        # unique species (use original names to match taxonomy)
+        # unique species
         species_set = set(otu_table["species"])
 
         # load taxonomies
@@ -227,6 +200,7 @@ def main():
             args.ar_taxonomy
         )
 
+        # add back species prefix for searching in GTDB taxonomy file
         my_species = {"s__" + x if not x.startswith("s__") else x for x in species_set}
 
         bac_found, _ = gt.find_matching_species(my_species, bac_species_to_genomes)
@@ -235,13 +209,13 @@ def main():
         bac_tree = gt.process_tree(args.bac_tree, bac_genome_to_species, bac_found)
         ar_tree = gt.process_tree(args.ar_tree, ar_genome_to_species, ar_found)
 
-        combined_tree = Tree3()
-        combined_tree.name = "root"
-        combined_tree.add_child(bac_tree)
-        combined_tree.add_child(ar_tree)
-        combined_tree.write(
-            outfile=f"{args.out_prefix}.tree", format=1, quoted_node_names=False
-        )
+        tree = Tree3()
+        tree.name = "root"
+        tree.add_child(bac_tree)
+        tree.add_child(ar_tree)
+
+    wide_otu_table.to_csv(f"{args.out_prefix}.otu.csv", sep=",", index=False)
+    tree.write(outfile=f"{args.out_prefix}.tree", format=1, quoted_node_names=False)
 
 
 if __name__ == "__main__":
