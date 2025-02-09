@@ -49,7 +49,7 @@ options:
 First, download the taxonomy and tree files for the GTDB release corresponding to your Bracken reports from the [GTDB website](https://gtdb.ecogenomic.org/downloads). For example, if you used GTDB release 95, you would download these files: `bac120_taxonomy_r95.tsv`, `ar122_taxonomy_r95.tsv`, `bac120_r95.tree`, and `ar122_r95.tree`.
 
 ```bash
-python gracken.py --input_dir bracken_reports --bac_taxonomy bac120_taxonomy_r95.tsv --ar_taxonomy ar122_taxonomy_r95.tsv --bac_tree bac120_r95.tree --ar_tree ar122_r95.tree --out_prefix my_tree --taxonomy gtdb
+gracken --input_dir bracken_reports --bac_taxonomy bac120_taxonomy_r95.tsv --ar_taxonomy ar122_taxonomy_r95.tsv --bac_tree bac120_r95.tree --ar_tree ar122_r95.tree --out_prefix my_tree --taxonomy gtdb
 ```
 
 This command will:
@@ -63,13 +63,21 @@ This command will:
 In NCBI mode, the taxdump is automatically downloaded. Simply run:
 
 ```bash
-python gracken.py --input_dir bracken_reports --out_prefix my_ncbi_tree --mode bracken
+gracken --input_dir bracken_reports --out_prefix my_ncbi_tree --mode bracken
 ```
 
 This command will:
 1.  Read Bracken reports from the `bracken_reports` directory.
 2.  Automatically download the necessary NCBI taxdump.
 3.  Create two output files: `my_ncbi_tree.tree` (the phylogenetic tree) and `my_ncbi_tree.otu.csv` (the OTU table).
+
+## Output Files
+
+Gracken will output two files:
+
+* `<prefix>.otu.csv`: A CSV file containing the OTU table. The first column contains the species names, and the remaining columns contain the counts for each species in each sample (smple names are derived from report file names). If you used the `--full-taxonomy` option, the first columns will contain the full taxonomy for each species.
+
+* `<prefix>.tree`: A Newick-formatted tree file.
 
 ## Phyloseq Example
 
@@ -79,7 +87,7 @@ You can use the output OTU file and tree with [phyloseq](https://joey711.github.
 library(ape)
 library(phyloseq)
 
-# read the otu table and convert it to matrix
+# read the otu table and convert it to matrix, using the species column as row names
 otu_tbl <- read.csv("output.otu.csv", stringsAsFactors = FALSE)
 otu_mat <- as.matrix(otu_tbl[, (which(names(otu_tbl) == "species") + 1):ncol(otu_tbl)])
 rownames(otu_mat) <- otu_tbl$species
@@ -91,16 +99,4 @@ tree_ps <- phy_tree(read.tree('output.tree'))
 
 # create the phyloseq object
 ps <- phyloseq(otu_table_ps, tree_ps)
-```
-
-## Dependencies
-
-*   Python 3
-*   pandas
-*   ete3
-
-You can install the dependencies using pip:
-
-```bash
-pip install -r requirements.txt
 ```
