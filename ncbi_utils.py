@@ -1,3 +1,6 @@
+from vars import tax_cols
+
+
 def build_lineage_mapping(ncbi, otu_table):
     """
     Build a mapping from species to taxonomy info using NCBI lineage.
@@ -8,15 +11,7 @@ def build_lineage_mapping(ncbi, otu_table):
         lineage = ncbi.get_lineage(int(tid))
         ranks = ncbi.get_rank(lineage)
         names = ncbi.get_taxid_translator(lineage)
-        taxonomy = {
-            "domain": "",
-            "phylum": "",
-            "class": "",
-            "order": "",
-            "family": "",
-            "genus": "",
-            "species": sp,
-        }
+        taxonomy = {c: "" for c in tax_cols}
         for rank in taxonomy:
             if rank == "species":
                 continue

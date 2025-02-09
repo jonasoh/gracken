@@ -5,6 +5,7 @@ import argparse
 import pandas as pd
 import gtdb_utils as gt
 import ncbi_utils as nc
+from vars import tax_cols
 from ete3 import NCBITaxa
 from ete3 import Tree as Tree3
 from data_loaders import read_bracken_report, read_kraken2_report
@@ -113,19 +114,19 @@ def main():
         if sample_otu.empty or not all(
             col in sample_otu.columns
             for col in (
-                ["taxid"] if args.taxonomy == "ncbi" else ["species", "abundance"]
+                ["taxid", "abundance"]
+                if args.taxonomy == "ncbi"
+                else ["species", "abundance"]
             )
         ):
             print(
-                f"Warning: Skipping {f} because it's empty or missing required columns.",
+                f"Warning: Skipping {f} because it's empty or malformed.",
                 file=sys.stderr,
             )
             continue
 
         sample_otu["sample"] = name
         otu_table = pd.concat([otu_table, sample_otu], ignore_index=True)
-
-    tax_cols = ["domain", "phylum", "class", "order", "family", "genus", "species"]
 
     def get_sample_cols(cols):
         return [c for c in cols if c not in tax_cols]

@@ -1,3 +1,6 @@
+from vars import tax_cols
+
+
 def process_taxonomy(taxonomy_file):
     """Process GTDB taxonomy file and return species mappings."""
     species_to_genomes = {}
@@ -62,20 +65,9 @@ def build_taxonomy_mapping(tax_files, keep_spaces):
                 parts = tax_str.split(";")
                 tax_dict = {}
                 for part in parts:
-                    if part.startswith("d__"):
-                        tax_dict["domain"] = part.replace("d__", "")
-                    elif part.startswith("p__"):
-                        tax_dict["phylum"] = part.replace("p__", "")
-                    elif part.startswith("c__"):
-                        tax_dict["class"] = part.replace("c__", "")
-                    elif part.startswith("o__"):
-                        tax_dict["order"] = part.replace("o__", "")
-                    elif part.startswith("f__"):
-                        tax_dict["family"] = part.replace("f__", "")
-                    elif part.startswith("g__"):
-                        tax_dict["genus"] = part.replace("g__", "")
-                    elif part.startswith("s__"):
-                        tax_dict["species"] = part.replace("s__", "")
+                    for c in tax_cols:
+                        if part.startswith(f"{c[0]}__"):
+                            tax_dict[c] = part.replace(f"{c[0]}__", "")
                 if "species" in tax_dict and not keep_spaces:
                     tax_dict["species"] = tax_dict["species"].replace(" ", "_")
                 if "species" in tax_dict and tax_dict["species"] not in gtdb_taxonomy:
