@@ -1,4 +1,4 @@
-from vars import tax_cols
+from .vars import tax_cols
 
 
 def process_taxonomy(taxonomy_file):
