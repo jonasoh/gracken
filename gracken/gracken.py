@@ -3,11 +3,12 @@ import sys
 import glob
 import argparse
 import pandas as pd
-from . import gtdb_utils as gt
-from . import ncbi_utils as nc
-from .vars import tax_cols
+from . import __version__
 from ete3 import NCBITaxa
+from .vars import tax_cols
 from ete3 import Tree as Tree3
+from . import ncbi_utils as nc
+from . import gtdb_utils as gt
 from .data_loaders import read_bracken_report, read_kraken2_report
 
 pd.options.mode.copy_on_write = True
@@ -16,6 +17,13 @@ pd.options.mode.copy_on_write = True
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Create a phylogenetic tree from Bracken/Kraken2 reports by pruning GTDB/NCBI trees"
+    )
+    parser.add_argument(
+        "--version",
+        "-v",
+        action="version",
+        version=__version__,
+        help="Show program version and exit",
     )
     parser.add_argument(
         "--input_dir",
