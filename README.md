@@ -6,10 +6,23 @@ Gracken was inspired by [this comment](https://github.com/jenniferlu717/KrakenTo
 
 ## Installation
 
-You can install Gracken using pipx:
+If you have `uv` installed, you can run gracken directly using `uvx`:
 
 ```bash
+uvx gracken --help
+```
+
+or install it using either `uv` or `pipx`:
+
+```bash
+# with uv
+uv tool install gracken
+
+# with pipx
 pipx install gracken
+
+# test that it works
+gracken --help
 ```
 
 ## Usage
