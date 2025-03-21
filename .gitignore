@@ -1,3 +1,13 @@
+# for testing
+*.otu.csv
+*.tree
+bac*.tsv
+ar*.tsv
+sample_data/
+
+# vscode
+.vscode/
+
 # MacOS stuff
 .DS_Store
 ._*
