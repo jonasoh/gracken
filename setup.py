@@ -11,7 +11,7 @@ except FileNotFoundError:
 
 setup(
     name="gracken",
-    version="0.1.0",
+    version="0.1.1",
     packages=find_packages(),
     install_requires=[
         "ete3==3.1.3",
