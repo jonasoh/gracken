@@ -4,6 +4,8 @@ Gracken is a tool for creating phylogenetic trees from Bracken/Kraken2 reports. 
 
 Gracken was inspired by [this comment](https://github.com/jenniferlu717/KrakenTools/issues/46#issuecomment-2387744942) on the [KrakenTools](https://github.com/jenniferlu717/KrakenTools/) repository.
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15064484.svg)](https://doi.org/10.5281/zenodo.15064484)
+
 ## Installation
 
 If you have `uv` installed, you can run gracken directly using `uvx`:
