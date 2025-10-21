@@ -2,9 +2,7 @@
 
 Gracken is a tool for creating phylogenetic trees from Bracken/Kraken2 reports. Both NCBI and GTDB taxonomies (see [Struo2](https://github.com/leylabmpi/Struo2)) are supported. It accomplishes this by pruning the NCBI/GTDB-provided tree using the species information from the report files. Gracken outputs a Newick-formatted tree and an OTU file with a format suitable for use with [phyloseq](https://joey711.github.io/phyloseq/).
 
-Gracken was inspired by [this comment](https://github.com/jenniferlu717/KrakenTools/issues/46#issuecomment-2387744942) on the [KrakenTools](https://github.com/jenniferlu717/KrakenTools/) repository.
-
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15064484.svg)](https://doi.org/10.5281/zenodo.15064484)
+Gracken was inspired by [this comment](https://github.com/jenniferlu717/KrakenTools/issues/46#issuecomment-2387744942) on the [KrakenTools](https://github.com/jenniferlu717/KrakenTools/) repository, and was developed for [Tsamadou et al. (2025)](https://doi.org/10.1111/1751-7915.70233).
 
 ## Installation
 
