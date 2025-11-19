@@ -108,8 +108,14 @@ def main():
 
     matching_files = glob.glob(os.path.join(args.input_dir, file_pattern))
     if not matching_files:
-        print(f"Error: No {args.mode} files found in {args.input_dir}", file=sys.stderr)
+        mode_label = "Bracken" if args.mode == "bracken" else "Kraken2"
+        print(
+            f"No {mode_label} report files found in: {args.input_dir}\n"
+            f"Expected file extension: {file_pattern}",
+            file=sys.stderr,
+        )
         sys.exit(1)
+
 
     for f in matching_files:
         name = os.path.splitext(os.path.basename(f))[0]
